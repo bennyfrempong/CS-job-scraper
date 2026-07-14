@@ -21,7 +21,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import func, desc
@@ -47,9 +47,9 @@ app.add_middleware(
 
 
 @app.get("/", include_in_schema=False)
-def frontend():
-    """Serves the dashboard — search/filter table + pipeline health strip."""
-    return FileResponse("static/index.html")
+def root():
+    """Root endpoint for API liveness."""
+    return {"message": "Job Scraper API is running. See /docs for endpoints."}
 
 
 # ── Response schemas ─────────────────────────────────────────────────────────
