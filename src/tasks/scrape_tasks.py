@@ -21,7 +21,7 @@ import structlog
 
 from src.tasks.celery_app import app
 from src.database.session import db_session
-from src.database.models import ScrapeRun, ScrapeError
+from src.database.models import ScrapeRun, ScrapeError, JobPosting
 from src.scrapers.base import BaseScraper
 from src.scrapers.hackernews import HackerNewsScraper
 from src.scrapers.remoteok import RemoteOKScraper
@@ -67,6 +67,13 @@ def _run_scraper_task(source_name: str, scraper_cls: Type[BaseScraper]) -> None:
             cleaned = [clean_job(j) for j in raw_jobs]
             normalized = normalize_jobs(cleaned)
             new_count, skipped = upsert_jobs(normalized, db)
+
+            # --- Cast out dead listings ---
+            db.query(JobPosting).filter(
+                JobPosting.source == source_name,
+                JobPosting.is_active == True,
+                JobPosting.scraped_at < run.started_at
+            ).update({"is_active": False})
 
             run.completed_at = datetime.now(timezone.utc)
             run.new_listings = new_count

@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from src.utils.logger import setup_logging
 from src.config import settings
 from src.database.session import db_session
-from src.database.models import ScrapeRun, ScrapeError
+from src.database.models import ScrapeRun, ScrapeError, JobPosting
 from src.scrapers.hackernews import HackerNewsScraper
 from src.scrapers.remoteok import RemoteOKScraper
 from src.scrapers.greenhouse import GreenhouseScraper
@@ -66,6 +66,16 @@ def run_scraper(name: str, scraper_cls) -> None:
             normalized = normalize_jobs(cleaned)
             new_count, skipped = upsert_jobs(normalized, db)
 
+            # --- Cast out dead listings ---
+            # Any job from this source that wasn't updated during this run
+            # has a scraped_at timestamp older than our run.started_at.
+            # We mark these as inactive so they drop off the frontend.
+            dead_count = db.query(JobPosting).filter(
+                JobPosting.source == name,
+                JobPosting.is_active == True,
+                JobPosting.scraped_at < run.started_at
+            ).update({"is_active": False})
+            
             run.completed_at = datetime.now(timezone.utc)
             run.new_listings = new_count
             run.skipped_dupes = skipped

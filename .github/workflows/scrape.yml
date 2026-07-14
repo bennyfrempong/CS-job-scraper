@@ -1,0 +1,37 @@
+name: Scrape Jobs Pipeline
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allow manual triggering from the GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Pipeline
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Add any optional API keys here if you set them in GitHub Secrets
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          THE_MUSE_API_KEY: ${{ secrets.THE_MUSE_API_KEY }}
+          USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
+          USAJOBS_EMAIL: ${{ secrets.USAJOBS_EMAIL }}
+        run: |
+          python run_pipeline.py hackernews remoteok greenhouse lever simplifyjobs indeed wellfound adzuna themuse usajobs
